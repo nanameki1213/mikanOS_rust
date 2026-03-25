@@ -50,8 +50,7 @@ fn build() -> Result<(), DynError> {
 }
 
 fn run() -> Result<(), DynError> {
-    let ovmf_vars_src =
-        project_root().join("edk2/Build/OvmfX64/DEBUG_GCC/FV/OVMF_VARS.fd");
+    let ovmf_vars_src = project_root().join("edk2/Build/OvmfX64/DEBUG_GCC/FV/OVMF_VARS.fd");
     let ovmf_vars_dst = project_root().join("OVMF_VARS.fd");
     let ovmf_code = project_root().join("edk2/Build/OvmfX64/DEBUG_GCC/FV/OVMF_CODE.fd");
 

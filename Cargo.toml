@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "bootloader",
+    "bootloader", "support/console",
     "xtask",
 ]
 resolver = "2"

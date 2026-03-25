@@ -1,37 +1,129 @@
 #![no_std]
 #![no_main]
 
+use console::print;
+use core::arch::asm;
+use core::ffi::c_void;
 use core::panic::PanicInfo;
+use spin::Once;
 use uefi::*;
 
 mod uefi;
 
-#[unsafe(no_mangle)]
-pub extern "efiapi" fn efi_main(
-    image_handle: Handle,
-    system_table: *mut SystemTable,
-) -> Status {
-    let table = unsafe {
-        &*system_table
-    };
+pub static BOOT_SERVICE: Once<&'static BootServices> = Once::new();
+pub static CON_OUT: Once<&'static SimpleTextOutputProtocol> = Once::new();
 
-    let con_out = unsafe {
-        &*table.con_out
-    };
+struct MemoryMap<'a> {
+    buffer: &'a mut [u8],
+    map_size: usize,
+    map_key: usize,
+    descriptor_size: usize,
+    descriptor_version: u32,
+}
 
-    let hello: &[u16] = &[
-      'H' as u16, 'e' as u16, 'l' as u16, 'l' as u16, 'o' as u16,
-      '\r' as u16, '\n' as u16, 0
-    ];
-    
-    unsafe {
-        (con_out.output_string)(table.con_out, hello.as_ptr());
+fn boot_services() -> &'static BootServices {
+    *BOOT_SERVICE.get().expect("Boot Services not initialized")
+}
+
+fn con_out() -> &'static SimpleTextOutputProtocol {
+    *CON_OUT.get().expect("ConOut not initialized")
+}
+
+fn get_memory_map(map: &mut MemoryMap) -> Status {
+    if map.buffer.len() == 0 {
+        return Status::BufferTooSmall;
     }
 
-    0
+    let bs = boot_services();
+
+    unsafe {
+        (bs.get_memory_map)(
+            &mut map.map_size,
+            map.buffer.as_ptr() as *mut MemoryDescriptor,
+            &mut map.map_key,
+            &mut map.descriptor_size,
+            &mut map.descriptor_version,
+        )
+    }
+}
+
+/// UEFI コンソール向け write_byte。
+/// `\n` を `\r\n` に変換し、1 バイトを UTF-16 に変換して output_string で出力する。
+fn uefi_putc(b: u8) {
+    let out = con_out();
+    if b == b'\n' {
+        let buf = [b'\r' as u16, b'\n' as u16, 0u16];
+        unsafe { (out.output_string)(out as *const _ as *mut _, buf.as_ptr()) };
+    } else {
+        let buf = [b as u16, 0u16];
+        unsafe { (out.output_string)(out as *const _ as *mut _, buf.as_ptr()) };
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "efiapi" fn efi_main(image_handle: Handle, system_table: *mut SystemTable) -> Status {
+    let table = unsafe { &*system_table };
+
+    let boot_service = unsafe { &*table.boot_services };
+    BOOT_SERVICE.call_once(|| boot_service);
+    let bs = boot_services();
+
+    let con_out_proto = unsafe { &*table.con_out };
+    CON_OUT.call_once(|| con_out_proto);
+    *console::CONSOLE.lock() = Some(console::Console::new(uefi_putc));
+
+    print!("Hello, World!\r\n");
+
+    // 二段階呼び出し
+    let mut temp_buf = [0u8; 1];
+    let mut memmap = MemoryMap {
+        buffer: &mut temp_buf,
+        map_size: 0,
+        map_key: 0,
+        descriptor_size: 0,
+        descriptor_version: 0,
+    };
+    let mut status = get_memory_map(&mut memmap);
+    // statusはBufferTooSmallのはず
+    assert_eq!(status, Status::BufferTooSmall);
+
+    memmap.map_size += memmap.descriptor_size * 4;
+    let mut memmap_buf_ptr: *mut c_void = core::ptr::null_mut();
+    unsafe {
+        status = (bs.allocate_pool)(
+            MemoryType::LoaderData,
+            memmap.map_size,
+            &mut memmap_buf_ptr as *mut *mut c_void,
+        );
+    }
+    if Status::is_error(status) {
+        print!("failed to allocate memory: {:?}\r\n", status);
+        halt_loop();
+    }
+    let mut memmap_buf = unsafe {
+        &mut *core::ptr::slice_from_raw_parts_mut(
+            memmap_buf_ptr as *mut u8,
+            memmap.map_size / memmap.descriptor_size,
+        )
+    };
+
+    memmap.buffer = &mut memmap_buf;
+    let status = get_memory_map(&mut memmap);
+    if Status::is_error(status) {
+        print!("failed to get memory map: {:?}\r\n", status);
+        halt_loop();
+    }
+
+    Status::Success
+}
+
+fn halt_loop() -> ! {
+    loop {
+        unsafe { asm!("hlt") };
+    }
 }
 
 #[panic_handler]
 fn panic(_panic: &PanicInfo<'_>) -> ! {
-    loop {}
+    halt_loop();
 }
