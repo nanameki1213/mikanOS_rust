@@ -630,54 +630,54 @@ pub struct EfiBootServices {
     // ── Protocol Handler Services ─────────────────────────────────────────────
     pub install_protocol_interface: unsafe extern "efiapi" fn(
         handle: *mut EfiHandle,
-        protocol: *mut EfiGuid,
+        protocol: *const EfiGuid,
         interface_type: EfiInterfaceType,
         interface: *mut c_void,
     ) -> EfiStatus,
 
     pub reinstall_protocol_interface: unsafe extern "efiapi" fn(
         handle: EfiHandle,
-        protocol: *mut EfiGuid,
+        protocol: *const EfiGuid,
         old_interface: *mut c_void,
         new_interface: *mut c_void,
     ) -> EfiStatus,
 
     pub uninstall_protocol_interface: unsafe extern "efiapi" fn(
         handle: EfiHandle,
-        protocol: *mut EfiGuid,
+        protocol: *const EfiGuid,
         interface: *mut c_void,
     ) -> EfiStatus,
 
     pub handle_protocol: unsafe extern "efiapi" fn(
         handle: EfiHandle,
-        protocol: *mut EfiGuid,
+        protocol: *const EfiGuid,
         interface: *mut *mut c_void,
     ) -> EfiStatus,
 
     pub reserved: *mut c_void,
 
     pub register_protocol_notify: unsafe extern "efiapi" fn(
-        protocol: *mut EfiGuid,
+        protocol: *const EfiGuid,
         event: EfiEvent,
         registration: *mut *mut c_void,
     ) -> EfiStatus,
 
     pub locate_handle: unsafe extern "efiapi" fn(
         search_type: EfiLocateSearchType,
-        protocol: *mut EfiGuid,
+        protocol: *const EfiGuid,
         search_key: *mut c_void,
         buffer_size: *mut usize,
         buffer: *mut EfiHandle,
     ) -> EfiStatus,
 
     pub locate_device_path: unsafe extern "efiapi" fn(
-        protocol: *mut EfiGuid,
+        protocol: *const EfiGuid,
         device_path: *mut *mut EfiDevicePath,
         device: *mut EfiHandle,
     ) -> EfiStatus,
 
     pub install_configuration_table:
-        unsafe extern "efiapi" fn(guid: *mut EfiGuid, table: *mut c_void) -> EfiStatus,
+        unsafe extern "efiapi" fn(guid: *const EfiGuid, table: *mut c_void) -> EfiStatus,
 
     // ── Image Services ────────────────────────────────────────────────────────
     pub load_image: unsafe extern "efiapi" fn(
@@ -736,7 +736,7 @@ pub struct EfiBootServices {
     // ── Open and Close Protocol Services ─────────────────────────────────────
     pub open_protocol: unsafe extern "efiapi" fn(
         handle: EfiHandle,
-        protocol: *mut EfiGuid,
+        protocol: *const EfiGuid,
         interface: *mut *mut c_void,
         agent_handle: EfiHandle,
         controller_handle: EfiHandle,
@@ -745,14 +745,14 @@ pub struct EfiBootServices {
 
     pub close_protocol: unsafe extern "efiapi" fn(
         handle: EfiHandle,
-        protocol: *mut EfiGuid,
+        protocol: *const EfiGuid,
         agent_handle: EfiHandle,
         controller_handle: EfiHandle,
     ) -> EfiStatus,
 
     pub open_protocol_information: unsafe extern "efiapi" fn(
         handle: EfiHandle,
-        protocol: *mut EfiGuid,
+        protocol: *const EfiGuid,
         entry_buffer: *mut *mut EfiOpenProtocolInformationEntry,
         entry_count: *mut usize,
     ) -> EfiStatus,
@@ -766,14 +766,14 @@ pub struct EfiBootServices {
 
     pub locate_handle_buffer: unsafe extern "efiapi" fn(
         search_type: EfiLocateSearchType,
-        protocol: *mut EfiGuid,
+        protocol: *const EfiGuid,
         search_key: *mut c_void,
         no_handles: *mut usize,
         buffer: *mut *mut EfiHandle,
     ) -> EfiStatus,
 
     pub locate_protocol: unsafe extern "efiapi" fn(
-        protocol: *mut EfiGuid,
+        protocol: *const EfiGuid,
         registration: *mut c_void,
         interface: *mut *mut c_void,
     ) -> EfiStatus,
@@ -804,7 +804,7 @@ pub struct EfiBootServices {
         notify_tpl: EfiTpl,
         notify_fn: Option<EfiEventNotify>,
         context: *const c_void,
-        event_group: *mut EfiGuid,
+        event_group: *const EfiGuid,
         event: *mut EfiEvent,
     ) -> EfiStatus,
 }
