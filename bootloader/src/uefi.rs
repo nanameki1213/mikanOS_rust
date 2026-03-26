@@ -95,6 +95,93 @@ pub struct EfiGuid {
     pub data3: u16,
     pub data4: [u8; 8],
 }
+// ──────────────────────────────────────────────────────────────────────────────
+// Well-known Protocol GUIDs (UEFI Spec 2.10)
+// ──────────────────────────────────────────────────────────────────────────────
+
+// ── Console ───────────────────────────────────────────────────────────────────
+
+/// EFI_SIMPLE_TEXT_INPUT_PROTOCOL_GUID
+/// SystemTable->ConIn のショートカットでも同じプロトコルを参照している。
+pub static EFI_SIMPLE_TEXT_INPUT_PROTOCOL_GUID: EfiGuid = EfiGuid {
+    data1: 0x387477c1,
+    data2: 0x69c7,
+    data3: 0x11d2,
+    data4: [0x8e, 0x39, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b],
+};
+
+/// EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL_GUID
+/// SystemTable->ConOut / StdErr のショートカットでも同じプロトコルを参照している。
+pub static EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL_GUID: EfiGuid = EfiGuid {
+    data1: 0x387477c2,
+    data2: 0x69c7,
+    data3: 0x11d2,
+    data4: [0x8e, 0x39, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b],
+};
+
+// ── Image / Device Path ───────────────────────────────────────────────────────
+
+/// EFI_LOADED_IMAGE_PROTOCOL_GUID
+pub static EFI_LOADED_IMAGE_PROTOCOL_GUID: EfiGuid = EfiGuid {
+    data1: 0x5b1b31a1,
+    data2: 0x9562,
+    data3: 0x11d2,
+    data4: [0x8e, 0x3f, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b],
+};
+
+/// EFI_DEVICE_PATH_PROTOCOL_GUID
+pub static EFI_DEVICE_PATH_PROTOCOL_GUID: EfiGuid = EfiGuid {
+    data1: 0x09576e91,
+    data2: 0x6d3f,
+    data3: 0x11d2,
+    data4: [0x8e, 0x39, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b],
+};
+
+// ── Storage ───────────────────────────────────────────────────────────────────
+
+/// EFI_BLOCK_IO_PROTOCOL_GUID
+pub static EFI_BLOCK_IO_PROTOCOL_GUID: EfiGuid = EfiGuid {
+    data1: 0x964e5b21,
+    data2: 0x6459,
+    data3: 0x11d2,
+    data4: [0x8e, 0x39, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b],
+};
+
+/// EFI_DISK_IO_PROTOCOL_GUID
+pub static EFI_DISK_IO_PROTOCOL_GUID: EfiGuid = EfiGuid {
+    data1: 0xce345171,
+    data2: 0xba0b,
+    data3: 0x11d2,
+    data4: [0x8e, 0x4f, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b],
+};
+
+/// EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID
+pub static EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID: EfiGuid = EfiGuid {
+    data1: 0x964e5b22,
+    data2: 0x6459,
+    data3: 0x11d2,
+    data4: [0x8e, 0x39, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b],
+};
+
+// ── Graphics ──────────────────────────────────────────────────────────────────
+
+/// EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID
+pub static EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID: EfiGuid = EfiGuid {
+    data1: 0x9042a9de,
+    data2: 0x23dc,
+    data3: 0x4a38,
+    data4: [0x96, 0xfb, 0x7a, 0xde, 0xd0, 0x80, 0x51, 0x6a],
+};
+
+// ── Serial ────────────────────────────────────────────────────────────────────
+
+/// EFI_SERIAL_IO_PROTOCOL_GUID
+pub static EFI_SERIAL_IO_PROTOCOL_GUID: EfiGuid = EfiGuid {
+    data1: 0xbb25cf6f,
+    data2: 0xf1d4,
+    data3: 0x11d2,
+    data4: [0x9a, 0x0c, 0x00, 0x90, 0x27, 0x3f, 0xc1, 0xfd],
+};
 
 // ──────────────────────────────────────────────────────────────────────────────
 // EFI_TABLE_HEADER
@@ -163,6 +250,23 @@ pub enum EfiTimerDelay {
 }
 
 pub type EfiEventNotify = unsafe extern "efiapi" fn(event: EfiEvent, context: *mut c_void);
+
+
+/// `OpenProtocol` の `attributes` に渡すフラグ (UEFI Spec 2.10 §7.3)
+pub mod open_protocol {
+    /// ハンドルが指定プロトコルをサポートするか調べる（`HandleProtocol` の代替）
+    pub const BY_HANDLE_PROTOCOL: u32 = 0x00000001;
+    /// プロトコルインターフェースのポインタを取得する（ドライバ管理外）
+    pub const GET_PROTOCOL: u32 = 0x00000002;
+    /// プロトコルが存在するかテストする（インターフェース取得なし）
+    pub const TEST_PROTOCOL: u32 = 0x00000004;
+    /// 子コントローラとしてオープンする
+    pub const BY_CHILD_CONTROLLER: u32 = 0x00000008;
+    /// ドライバとしてオープンする
+    pub const BY_DRIVER: u32 = 0x00000010;
+    /// 排他的にオープンする（他のドライバを切断する）
+    pub const EXCLUSIVE: u32 = 0x00000020;
+}
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Protocol handler types
