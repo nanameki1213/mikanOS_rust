@@ -10,8 +10,8 @@ use uefi::*;
 
 mod uefi;
 
-pub static BOOT_SERVICE: Once<&'static BootServices> = Once::new();
-pub static CON_OUT: Once<&'static SimpleTextOutputProtocol> = Once::new();
+pub static BOOT_SERVICE: Once<&'static EfiBootServices> = Once::new();
+pub static CON_OUT: Once<&'static EfiSimpleTextOutputProtocol> = Once::new();
 
 struct MemoryMap<'a> {
     buffer: &'a mut [u8],
@@ -21,17 +21,17 @@ struct MemoryMap<'a> {
     descriptor_version: u32,
 }
 
-fn boot_services() -> &'static BootServices {
+fn boot_services() -> &'static EfiBootServices {
     *BOOT_SERVICE.get().expect("Boot Services not initialized")
 }
 
-fn con_out() -> &'static SimpleTextOutputProtocol {
+fn con_out() -> &'static EfiSimpleTextOutputProtocol {
     *CON_OUT.get().expect("ConOut not initialized")
 }
 
-fn get_memory_map(map: &mut MemoryMap) -> Status {
+fn get_memory_map(map: &mut MemoryMap) -> EfiStatus {
     if map.buffer.len() == 0 {
-        return Status::BufferTooSmall;
+        return EfiStatus::BufferTooSmall;
     }
 
     let bs = boot_services();
@@ -39,7 +39,7 @@ fn get_memory_map(map: &mut MemoryMap) -> Status {
     unsafe {
         (bs.get_memory_map)(
             &mut map.map_size,
-            map.buffer.as_ptr() as *mut MemoryDescriptor,
+            map.buffer.as_ptr() as *mut EfiMemoryDescriptor,
             &mut map.map_key,
             &mut map.descriptor_size,
             &mut map.descriptor_version,
@@ -61,7 +61,7 @@ fn uefi_putc(b: u8) {
 }
 
 #[unsafe(no_mangle)]
-pub extern "efiapi" fn efi_main(image_handle: Handle, system_table: *mut SystemTable) -> Status {
+pub extern "efiapi" fn efi_main(image_handle: EfiHandle, system_table: *mut EfiSystemTable) -> EfiStatus {
     let table = unsafe { &*system_table };
 
     let boot_service = unsafe { &*table.boot_services };
@@ -85,18 +85,18 @@ pub extern "efiapi" fn efi_main(image_handle: Handle, system_table: *mut SystemT
     };
     let mut status = get_memory_map(&mut memmap);
     // statusはBufferTooSmallのはず
-    assert_eq!(status, Status::BufferTooSmall);
+    assert_eq!(status, EfiStatus::BufferTooSmall);
 
     memmap.map_size += memmap.descriptor_size * 4;
     let mut memmap_buf_ptr: *mut c_void = core::ptr::null_mut();
     unsafe {
         status = (bs.allocate_pool)(
-            MemoryType::LoaderData,
+            EfiMemoryType::LoaderData,
             memmap.map_size,
             &mut memmap_buf_ptr as *mut *mut c_void,
         );
     }
-    if Status::is_error(status) {
+    if EfiStatus::is_error(status) {
         print!("failed to allocate memory: {:?}\r\n", status);
         halt_loop();
     }
@@ -109,12 +109,12 @@ pub extern "efiapi" fn efi_main(image_handle: Handle, system_table: *mut SystemT
 
     memmap.buffer = &mut memmap_buf;
     let status = get_memory_map(&mut memmap);
-    if Status::is_error(status) {
+    if EfiStatus::is_error(status) {
         print!("failed to get memory map: {:?}\r\n", status);
         halt_loop();
     }
 
-    Status::Success
+    EfiStatus::Success
 }
 
 fn halt_loop() -> ! {

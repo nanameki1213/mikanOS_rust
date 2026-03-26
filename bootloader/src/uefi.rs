@@ -9,7 +9,7 @@ use core::ffi::c_void;
 /// エラーコードは最上位ビット (bit 63) が立っている。
 #[repr(usize)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Status {
+pub enum EfiStatus {
     // ── 成功 ──────────────────────────────────────────────────────────────────
     Success = 0,
 
@@ -57,7 +57,7 @@ pub enum Status {
     HttpError = 0x8000_0000_0000_0023,
 }
 
-impl Status {
+impl EfiStatus {
     /// エラーコード（bit63 = 1）かどうかを返す
     #[inline]
     pub fn is_error(self) -> bool {
@@ -73,23 +73,23 @@ impl Status {
 }
 
 /// EFI_EVENT
-pub type Event = *mut c_void;
+pub type EfiEvent = *mut c_void;
 
 /// EFI_HANDLE
-pub type Handle = *mut c_void;
+pub type EfiHandle = *mut c_void;
 
 /// EFI_TPL (Task Priority Level)
-pub type Tpl = usize;
+pub type EfiTpl = usize;
 
-pub type PhysicalAddress = u64;
-pub type VirtualAddress = u64;
+pub type EfiPhysicalAddress = u64;
+pub type EfiVirtualAddress = u64;
 
 // ──────────────────────────────────────────────────────────────────────────────
 // EFI_GUID
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[repr(C)]
-pub struct Guid {
+pub struct EfiGuid {
     pub data1: u32,
     pub data2: u16,
     pub data3: u16,
@@ -101,7 +101,7 @@ pub struct Guid {
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[repr(C)]
-pub struct TableHeader {
+pub struct EfiTableHeader {
     pub signature: u64,
     pub revision: u32,
     pub header_size: u32,
@@ -114,7 +114,7 @@ pub struct TableHeader {
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[repr(C)]
-pub enum AllocateType {
+pub enum EfiAllocateType {
     AllocateAnyPages,
     AllocateMaxAddress,
     AllocateAddress,
@@ -122,7 +122,7 @@ pub enum AllocateType {
 }
 
 #[repr(C)]
-pub enum MemoryType {
+pub enum EfiMemoryType {
     ReservedMemoryType,
     LoaderCode,
     LoaderData,
@@ -143,47 +143,47 @@ pub enum MemoryType {
 
 /// EFI_MEMORY_DESCRIPTOR
 #[repr(C)]
-pub struct MemoryDescriptor {
+pub struct EfiMemoryDescriptor {
     pub memory_type: u32,
-    pub physical_start: PhysicalAddress,
-    pub virtual_start: VirtualAddress,
+    pub physical_start: EfiPhysicalAddress,
+    pub virtual_start: EfiVirtualAddress,
     pub number_of_pages: u64,
     pub attribute: u64,
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Event / Timer types
+// EfiEvent / Timer types
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[repr(C)]
-pub enum TimerDelay {
+pub enum EfiTimerDelay {
     TimerCancel,
     TimerPeriodic,
     TimerRelative,
 }
 
-pub type EventNotify = unsafe extern "efiapi" fn(event: Event, context: *mut c_void);
+pub type EfiEventNotify = unsafe extern "efiapi" fn(event: EfiEvent, context: *mut c_void);
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Protocol handler types
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[repr(C)]
-pub enum InterfaceType {
+pub enum EfiInterfaceType {
     NativeInterface,
 }
 
 #[repr(C)]
-pub enum LocateSearchType {
+pub enum EfiLocateSearchType {
     AllHandles,
     ByRegisterNotify,
     ByProtocol,
 }
 
 #[repr(C)]
-pub struct OpenProtocolInformationEntry {
-    pub agent_handle: Handle,
-    pub controller_handle: Handle,
+pub struct EfiOpenProtocolInformationEntry {
+    pub agent_handle: EfiHandle,
+    pub controller_handle: EfiHandle,
     pub attributes: u32,
     pub open_count: u32,
 }
@@ -193,18 +193,18 @@ pub struct OpenProtocolInformationEntry {
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[repr(C)]
-pub struct DevicePath {
+pub struct EfiDevicePath {
     pub r#type: u8,
     pub sub_type: u8,
     pub length: [u8; 2],
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Time
+// EfiTime
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[repr(C)]
-pub struct Time {
+pub struct EfiTime {
     pub year: u16,
     pub month: u8,
     pub day: u8,
@@ -219,7 +219,7 @@ pub struct Time {
 }
 
 #[repr(C)]
-pub struct TimeCapabilities {
+pub struct EfiTimeCapabilities {
     pub resolution: u32,
     pub accuracy: u32,
     pub sets_to_zero: bool,
@@ -230,7 +230,7 @@ pub struct TimeCapabilities {
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[repr(C)]
-pub enum ResetType {
+pub enum EfiResetType {
     ResetCold,
     ResetWarm,
     ResetShutdown,
@@ -238,8 +238,8 @@ pub enum ResetType {
 }
 
 #[repr(C)]
-pub struct CapsuleHeader {
-    pub capsule_guid: Guid,
+pub struct EfiCapsuleHeader {
+    pub capsule_guid: EfiGuid,
     pub header_size: u32,
     pub flags: u32,
     pub capsule_image_size: u32,
@@ -250,8 +250,8 @@ pub struct CapsuleHeader {
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[repr(C)]
-pub struct ConfigurationTable {
-    pub vendor_guid: Guid,
+pub struct EfiConfigurationTable {
+    pub vendor_guid: EfiGuid,
     pub vendor_table: *mut c_void,
 }
 
@@ -260,18 +260,18 @@ pub struct ConfigurationTable {
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[repr(C)]
-pub struct InputKey {
+pub struct EfiInputKey {
     pub scan_code: u16,
     pub unicode_char: u16,
 }
 
 #[repr(C)]
-pub struct SimpleTextInputProtocol {
-    pub reset: unsafe extern "efiapi" fn(this: *mut Self, extended_verify: bool) -> Status,
+pub struct EfiSimpleTextInputProtocol {
+    pub reset: unsafe extern "efiapi" fn(this: *mut Self, extended_verify: bool) -> EfiStatus,
 
-    pub read_key_stroke: unsafe extern "efiapi" fn(this: *mut Self, key: *mut InputKey) -> Status,
+    pub read_key_stroke: unsafe extern "efiapi" fn(this: *mut Self, key: *mut EfiInputKey) -> EfiStatus,
 
-    pub wait_for_key: Event,
+    pub wait_for_key: EfiEvent,
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -279,7 +279,7 @@ pub struct SimpleTextInputProtocol {
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[repr(C)]
-pub struct SimpleTextOutputMode {
+pub struct EfiSimpleTextOutputMode {
     pub max_mode: i32,
     pub mode: i32,
     pub attribute: i32,
@@ -289,251 +289,251 @@ pub struct SimpleTextOutputMode {
 }
 
 #[repr(C)]
-pub struct SimpleTextOutputProtocol {
-    pub reset: unsafe extern "efiapi" fn(this: *mut Self, extended_verify: bool) -> Status,
+pub struct EfiSimpleTextOutputProtocol {
+    pub reset: unsafe extern "efiapi" fn(this: *mut Self, extended_verify: bool) -> EfiStatus,
 
-    pub output_string: unsafe extern "efiapi" fn(this: *mut Self, string: *const u16) -> Status,
+    pub output_string: unsafe extern "efiapi" fn(this: *mut Self, string: *const u16) -> EfiStatus,
 
-    pub test_string: unsafe extern "efiapi" fn(this: *mut Self, string: *const u16) -> Status,
+    pub test_string: unsafe extern "efiapi" fn(this: *mut Self, string: *const u16) -> EfiStatus,
 
     pub query_mode: unsafe extern "efiapi" fn(
         this: *mut Self,
         mode_number: usize,
         columns: *mut usize,
         rows: *mut usize,
-    ) -> Status,
+    ) -> EfiStatus,
 
-    pub set_mode: unsafe extern "efiapi" fn(this: *mut Self, mode_number: usize) -> Status,
+    pub set_mode: unsafe extern "efiapi" fn(this: *mut Self, mode_number: usize) -> EfiStatus,
 
-    pub set_attribute: unsafe extern "efiapi" fn(this: *mut Self, attribute: usize) -> Status,
+    pub set_attribute: unsafe extern "efiapi" fn(this: *mut Self, attribute: usize) -> EfiStatus,
 
-    pub clear_screen: unsafe extern "efiapi" fn(this: *mut Self) -> Status,
+    pub clear_screen: unsafe extern "efiapi" fn(this: *mut Self) -> EfiStatus,
 
     pub set_cursor_position:
-        unsafe extern "efiapi" fn(this: *mut Self, column: usize, row: usize) -> Status,
+        unsafe extern "efiapi" fn(this: *mut Self, column: usize, row: usize) -> EfiStatus,
 
-    pub enable_cursor: unsafe extern "efiapi" fn(this: *mut Self, visible: bool) -> Status,
+    pub enable_cursor: unsafe extern "efiapi" fn(this: *mut Self, visible: bool) -> EfiStatus,
 
-    pub mode: *mut SimpleTextOutputMode,
+    pub mode: *mut EfiSimpleTextOutputMode,
 }
 
 // UEFI はシングルスレッド環境であり、実際にはスレッド間共有は発生しない。
 // raw pointer フィールドにより Sync が自動実装されないため手動で宣言する。
-unsafe impl Sync for SimpleTextOutputProtocol {}
+unsafe impl Sync for EfiSimpleTextOutputProtocol {}
 
 // ──────────────────────────────────────────────────────────────────────────────
 // EFI_BOOT_SERVICES
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[repr(C)]
-pub struct BootServices {
-    pub header: TableHeader,
+pub struct EfiBootServices {
+    pub header: EfiTableHeader,
 
     // ── Task Priority Services ────────────────────────────────────────────────
-    pub raise_tpl: unsafe extern "efiapi" fn(new_tpl: Tpl) -> Tpl,
+    pub raise_tpl: unsafe extern "efiapi" fn(new_tpl: EfiTpl) -> EfiTpl,
 
-    pub restore_tpl: unsafe extern "efiapi" fn(old_tpl: Tpl),
+    pub restore_tpl: unsafe extern "efiapi" fn(old_tpl: EfiTpl),
 
     // ── Memory Services ───────────────────────────────────────────────────────
     pub allocate_pages: unsafe extern "efiapi" fn(
-        allocate_type: AllocateType,
-        memory_type: MemoryType,
+        allocate_type: EfiAllocateType,
+        memory_type: EfiMemoryType,
         pages: usize,
-        memory: *mut PhysicalAddress,
-    ) -> Status,
+        memory: *mut EfiPhysicalAddress,
+    ) -> EfiStatus,
 
-    pub free_pages: unsafe extern "efiapi" fn(memory: PhysicalAddress, pages: usize) -> Status,
+    pub free_pages: unsafe extern "efiapi" fn(memory: EfiPhysicalAddress, pages: usize) -> EfiStatus,
 
     pub get_memory_map: unsafe extern "efiapi" fn(
         memory_map_size: *mut usize,
-        memory_map: *mut MemoryDescriptor,
+        memory_map: *mut EfiMemoryDescriptor,
         map_key: *mut usize,
         descriptor_size: *mut usize,
         descriptor_version: *mut u32,
-    ) -> Status,
+    ) -> EfiStatus,
 
     pub allocate_pool: unsafe extern "efiapi" fn(
-        pool_type: MemoryType,
+        pool_type: EfiMemoryType,
         size: usize,
         buffer: *mut *mut c_void,
-    ) -> Status,
+    ) -> EfiStatus,
 
-    pub free_pool: unsafe extern "efiapi" fn(buffer: *mut c_void) -> Status,
+    pub free_pool: unsafe extern "efiapi" fn(buffer: *mut c_void) -> EfiStatus,
 
-    // ── Event & Timer Services ────────────────────────────────────────────────
+    // ── EfiEvent & Timer Services ────────────────────────────────────────────────
     pub create_event: unsafe extern "efiapi" fn(
         r#type: u32,
-        notify_tpl: Tpl,
-        notify_fn: Option<EventNotify>,
+        notify_tpl: EfiTpl,
+        notify_fn: Option<EfiEventNotify>,
         context: *mut c_void,
-        event: *mut Event,
-    ) -> Status,
+        event: *mut EfiEvent,
+    ) -> EfiStatus,
 
     pub set_timer:
-        unsafe extern "efiapi" fn(event: Event, r#type: TimerDelay, trigger_time: u64) -> Status,
+        unsafe extern "efiapi" fn(event: EfiEvent, r#type: EfiTimerDelay, trigger_time: u64) -> EfiStatus,
 
     pub wait_for_event: unsafe extern "efiapi" fn(
         number_of_events: usize,
-        event: *mut Event,
+        event: *mut EfiEvent,
         index: *mut usize,
-    ) -> Status,
+    ) -> EfiStatus,
 
-    pub signal_event: unsafe extern "efiapi" fn(event: Event) -> Status,
+    pub signal_event: unsafe extern "efiapi" fn(event: EfiEvent) -> EfiStatus,
 
-    pub close_event: unsafe extern "efiapi" fn(event: Event) -> Status,
+    pub close_event: unsafe extern "efiapi" fn(event: EfiEvent) -> EfiStatus,
 
-    pub check_event: unsafe extern "efiapi" fn(event: Event) -> Status,
+    pub check_event: unsafe extern "efiapi" fn(event: EfiEvent) -> EfiStatus,
 
     // ── Protocol Handler Services ─────────────────────────────────────────────
     pub install_protocol_interface: unsafe extern "efiapi" fn(
-        handle: *mut Handle,
-        protocol: *mut Guid,
-        interface_type: InterfaceType,
+        handle: *mut EfiHandle,
+        protocol: *mut EfiGuid,
+        interface_type: EfiInterfaceType,
         interface: *mut c_void,
-    ) -> Status,
+    ) -> EfiStatus,
 
     pub reinstall_protocol_interface: unsafe extern "efiapi" fn(
-        handle: Handle,
-        protocol: *mut Guid,
+        handle: EfiHandle,
+        protocol: *mut EfiGuid,
         old_interface: *mut c_void,
         new_interface: *mut c_void,
-    ) -> Status,
+    ) -> EfiStatus,
 
     pub uninstall_protocol_interface: unsafe extern "efiapi" fn(
-        handle: Handle,
-        protocol: *mut Guid,
+        handle: EfiHandle,
+        protocol: *mut EfiGuid,
         interface: *mut c_void,
-    ) -> Status,
+    ) -> EfiStatus,
 
     pub handle_protocol: unsafe extern "efiapi" fn(
-        handle: Handle,
-        protocol: *mut Guid,
+        handle: EfiHandle,
+        protocol: *mut EfiGuid,
         interface: *mut *mut c_void,
-    ) -> Status,
+    ) -> EfiStatus,
 
     pub reserved: *mut c_void,
 
     pub register_protocol_notify: unsafe extern "efiapi" fn(
-        protocol: *mut Guid,
-        event: Event,
+        protocol: *mut EfiGuid,
+        event: EfiEvent,
         registration: *mut *mut c_void,
-    ) -> Status,
+    ) -> EfiStatus,
 
     pub locate_handle: unsafe extern "efiapi" fn(
-        search_type: LocateSearchType,
-        protocol: *mut Guid,
+        search_type: EfiLocateSearchType,
+        protocol: *mut EfiGuid,
         search_key: *mut c_void,
         buffer_size: *mut usize,
-        buffer: *mut Handle,
-    ) -> Status,
+        buffer: *mut EfiHandle,
+    ) -> EfiStatus,
 
     pub locate_device_path: unsafe extern "efiapi" fn(
-        protocol: *mut Guid,
-        device_path: *mut *mut DevicePath,
-        device: *mut Handle,
-    ) -> Status,
+        protocol: *mut EfiGuid,
+        device_path: *mut *mut EfiDevicePath,
+        device: *mut EfiHandle,
+    ) -> EfiStatus,
 
     pub install_configuration_table:
-        unsafe extern "efiapi" fn(guid: *mut Guid, table: *mut c_void) -> Status,
+        unsafe extern "efiapi" fn(guid: *mut EfiGuid, table: *mut c_void) -> EfiStatus,
 
     // ── Image Services ────────────────────────────────────────────────────────
     pub load_image: unsafe extern "efiapi" fn(
         boot_policy: bool,
-        parent_image_handle: Handle,
-        device_path: *mut DevicePath,
+        parent_image_handle: EfiHandle,
+        device_path: *mut EfiDevicePath,
         source_buffer: *mut c_void,
         source_size: usize,
-        image_handle: *mut Handle,
-    ) -> Status,
+        image_handle: *mut EfiHandle,
+    ) -> EfiStatus,
 
     pub start_image: unsafe extern "efiapi" fn(
-        image_handle: Handle,
+        image_handle: EfiHandle,
         exit_data_size: *mut usize,
         exit_data: *mut *mut u16,
-    ) -> Status,
+    ) -> EfiStatus,
 
     pub exit: unsafe extern "efiapi" fn(
-        image_handle: Handle,
-        exit_status: Status,
+        image_handle: EfiHandle,
+        exit_status: EfiStatus,
         exit_data_size: usize,
         exit_data: *mut u16,
-    ) -> Status,
+    ) -> EfiStatus,
 
-    pub unload_image: unsafe extern "efiapi" fn(image_handle: Handle) -> Status,
+    pub unload_image: unsafe extern "efiapi" fn(image_handle: EfiHandle) -> EfiStatus,
 
     pub exit_boot_services:
-        unsafe extern "efiapi" fn(image_handle: Handle, map_key: usize) -> Status,
+        unsafe extern "efiapi" fn(image_handle: EfiHandle, map_key: usize) -> EfiStatus,
 
     // ── Miscellaneous Services ────────────────────────────────────────────────
-    pub get_next_monotonic_count: unsafe extern "efiapi" fn(count: *mut u64) -> Status,
+    pub get_next_monotonic_count: unsafe extern "efiapi" fn(count: *mut u64) -> EfiStatus,
 
-    pub stall: unsafe extern "efiapi" fn(microseconds: usize) -> Status,
+    pub stall: unsafe extern "efiapi" fn(microseconds: usize) -> EfiStatus,
 
     pub set_watchdog_timer: unsafe extern "efiapi" fn(
         timeout: usize,
         watchdog_code: u64,
         data_size: usize,
         watchdog_data: *mut u16,
-    ) -> Status,
+    ) -> EfiStatus,
 
     // ── Driver Support Services ───────────────────────────────────────────────
     pub connect_controller: unsafe extern "efiapi" fn(
-        controller_handle: Handle,
-        driver_image_handle: *mut Handle,
-        remaining_device_path: *mut DevicePath,
+        controller_handle: EfiHandle,
+        driver_image_handle: *mut EfiHandle,
+        remaining_device_path: *mut EfiDevicePath,
         recursive: bool,
-    ) -> Status,
+    ) -> EfiStatus,
 
     pub disconnect_controller: unsafe extern "efiapi" fn(
-        controller_handle: Handle,
-        driver_image_handle: Handle,
-        child_handle: Handle,
-    ) -> Status,
+        controller_handle: EfiHandle,
+        driver_image_handle: EfiHandle,
+        child_handle: EfiHandle,
+    ) -> EfiStatus,
 
     // ── Open and Close Protocol Services ─────────────────────────────────────
     pub open_protocol: unsafe extern "efiapi" fn(
-        handle: Handle,
-        protocol: *mut Guid,
+        handle: EfiHandle,
+        protocol: *mut EfiGuid,
         interface: *mut *mut c_void,
-        agent_handle: Handle,
-        controller_handle: Handle,
+        agent_handle: EfiHandle,
+        controller_handle: EfiHandle,
         attributes: u32,
-    ) -> Status,
+    ) -> EfiStatus,
 
     pub close_protocol: unsafe extern "efiapi" fn(
-        handle: Handle,
-        protocol: *mut Guid,
-        agent_handle: Handle,
-        controller_handle: Handle,
-    ) -> Status,
+        handle: EfiHandle,
+        protocol: *mut EfiGuid,
+        agent_handle: EfiHandle,
+        controller_handle: EfiHandle,
+    ) -> EfiStatus,
 
     pub open_protocol_information: unsafe extern "efiapi" fn(
-        handle: Handle,
-        protocol: *mut Guid,
-        entry_buffer: *mut *mut OpenProtocolInformationEntry,
+        handle: EfiHandle,
+        protocol: *mut EfiGuid,
+        entry_buffer: *mut *mut EfiOpenProtocolInformationEntry,
         entry_count: *mut usize,
-    ) -> Status,
+    ) -> EfiStatus,
 
     // ── Library Services ──────────────────────────────────────────────────────
     pub protocols_per_handle: unsafe extern "efiapi" fn(
-        handle: Handle,
-        protocol_buffer: *mut *mut *mut Guid,
+        handle: EfiHandle,
+        protocol_buffer: *mut *mut *mut EfiGuid,
         protocol_buffer_count: *mut usize,
-    ) -> Status,
+    ) -> EfiStatus,
 
     pub locate_handle_buffer: unsafe extern "efiapi" fn(
-        search_type: LocateSearchType,
-        protocol: *mut Guid,
+        search_type: EfiLocateSearchType,
+        protocol: *mut EfiGuid,
         search_key: *mut c_void,
         no_handles: *mut usize,
-        buffer: *mut *mut Handle,
-    ) -> Status,
+        buffer: *mut *mut EfiHandle,
+    ) -> EfiStatus,
 
     pub locate_protocol: unsafe extern "efiapi" fn(
-        protocol: *mut Guid,
+        protocol: *mut EfiGuid,
         registration: *mut c_void,
         interface: *mut *mut c_void,
-    ) -> Status,
+    ) -> EfiStatus,
 
     /// Variadic — represented as a raw pointer; cast to the appropriate
     /// function type when calling.
@@ -545,7 +545,7 @@ pub struct BootServices {
 
     // ── 32-bit CRC Services ───────────────────────────────────────────────────
     pub calculate_crc32:
-        unsafe extern "efiapi" fn(data: *mut c_void, data_size: usize, crc32: *mut u32) -> Status,
+        unsafe extern "efiapi" fn(data: *mut c_void, data_size: usize, crc32: *mut u32) -> EfiStatus,
 
     // ── Miscellaneous Services ────────────────────────────────────────────────
     pub copy_mem:
@@ -555,97 +555,97 @@ pub struct BootServices {
 
     pub create_event_ex: unsafe extern "efiapi" fn(
         r#type: u32,
-        notify_tpl: Tpl,
-        notify_fn: Option<EventNotify>,
+        notify_tpl: EfiTpl,
+        notify_fn: Option<EfiEventNotify>,
         context: *const c_void,
-        event_group: *const Guid,
-        event: *mut Event,
-    ) -> Status,
+        event_group: *const EfiGuid,
+        event: *mut EfiEvent,
+    ) -> EfiStatus,
 }
 
 // UEFI はシングルスレッド環境であり、実際にはスレッド間共有は発生しない。
 // raw pointer フィールドにより Sync が自動実装されないため手動で宣言する。
-unsafe impl Sync for BootServices {}
+unsafe impl Sync for EfiBootServices {}
 
 // ──────────────────────────────────────────────────────────────────────────────
 // EFI_RUNTIME_SERVICES
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[repr(C)]
-pub struct RuntimeServices {
-    pub header: TableHeader,
+pub struct EfiRuntimeServices {
+    pub header: EfiTableHeader,
 
-    // ── Time Services ─────────────────────────────────────────────────────────
+    // ── EfiTime Services ─────────────────────────────────────────────────────────
     pub get_time:
-        unsafe extern "efiapi" fn(time: *mut Time, capabilities: *mut TimeCapabilities) -> Status,
+        unsafe extern "efiapi" fn(time: *mut EfiTime, capabilities: *mut EfiTimeCapabilities) -> EfiStatus,
 
-    pub set_time: unsafe extern "efiapi" fn(time: *const Time) -> Status,
+    pub set_time: unsafe extern "efiapi" fn(time: *const EfiTime) -> EfiStatus,
 
     pub get_wakeup_time: unsafe extern "efiapi" fn(
         enabled: *mut bool,
         pending: *mut bool,
-        time: *mut Time,
-    ) -> Status,
+        time: *mut EfiTime,
+    ) -> EfiStatus,
 
-    pub set_wakeup_time: unsafe extern "efiapi" fn(enable: bool, time: *mut Time) -> Status,
+    pub set_wakeup_time: unsafe extern "efiapi" fn(enable: bool, time: *mut EfiTime) -> EfiStatus,
 
     // ── Virtual Memory Services ───────────────────────────────────────────────
     pub set_virtual_address_map: unsafe extern "efiapi" fn(
         memory_map_size: usize,
         descriptor_size: usize,
         descriptor_version: u32,
-        virtual_map: *mut MemoryDescriptor,
-    ) -> Status,
+        virtual_map: *mut EfiMemoryDescriptor,
+    ) -> EfiStatus,
 
     pub convert_pointer:
-        unsafe extern "efiapi" fn(debug_disposition: usize, address: *mut *mut c_void) -> Status,
+        unsafe extern "efiapi" fn(debug_disposition: usize, address: *mut *mut c_void) -> EfiStatus,
 
     // ── Variable Services ─────────────────────────────────────────────────────
     pub get_variable: unsafe extern "efiapi" fn(
         variable_name: *const u16,
-        vendor_guid: *const Guid,
+        vendor_guid: *const EfiGuid,
         attributes: *mut u32,
         data_size: *mut usize,
         data: *mut c_void,
-    ) -> Status,
+    ) -> EfiStatus,
 
     pub get_next_variable_name: unsafe extern "efiapi" fn(
         variable_name_size: *mut usize,
         variable_name: *mut u16,
-        vendor_guid: *mut Guid,
-    ) -> Status,
+        vendor_guid: *mut EfiGuid,
+    ) -> EfiStatus,
 
     pub set_variable: unsafe extern "efiapi" fn(
         variable_name: *const u16,
-        vendor_guid: *const Guid,
+        vendor_guid: *const EfiGuid,
         attributes: u32,
         data_size: usize,
         data: *mut c_void,
-    ) -> Status,
+    ) -> EfiStatus,
 
     // ── Miscellaneous Services ────────────────────────────────────────────────
-    pub get_next_high_monotonic_count: unsafe extern "efiapi" fn(high_count: *mut u32) -> Status,
+    pub get_next_high_monotonic_count: unsafe extern "efiapi" fn(high_count: *mut u32) -> EfiStatus,
 
     pub reset_system: unsafe extern "efiapi" fn(
-        reset_type: ResetType,
-        reset_status: Status,
+        reset_type: EfiResetType,
+        reset_status: EfiStatus,
         data_size: usize,
         reset_data: *mut c_void,
     ),
 
     // ── UEFI 2.0 Capsule Services ─────────────────────────────────────────────
     pub update_capsule: unsafe extern "efiapi" fn(
-        capsule_header_array: *mut *mut CapsuleHeader,
+        capsule_header_array: *mut *mut EfiCapsuleHeader,
         capsule_count: usize,
-        scatter_gather_list: PhysicalAddress,
-    ) -> Status,
+        scatter_gather_list: EfiPhysicalAddress,
+    ) -> EfiStatus,
 
     pub query_capsule_capabilities: unsafe extern "efiapi" fn(
-        capsule_header_array: *mut *mut CapsuleHeader,
+        capsule_header_array: *mut *mut EfiCapsuleHeader,
         capsule_count: usize,
         maximum_capsule_size: *mut u64,
-        reset_type: *mut ResetType,
-    ) -> Status,
+        reset_type: *mut EfiResetType,
+    ) -> EfiStatus,
 
     // ── Miscellaneous UEFI 2.0 Service ────────────────────────────────────────
     pub query_variable_info: unsafe extern "efiapi" fn(
@@ -653,7 +653,7 @@ pub struct RuntimeServices {
         maximum_variable_storage_size: *mut u64,
         remaining_variable_storage_size: *mut u64,
         maximum_variable_size: *mut u64,
-    ) -> Status,
+    ) -> EfiStatus,
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -661,18 +661,18 @@ pub struct RuntimeServices {
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[repr(C)]
-pub struct SystemTable {
-    pub header: TableHeader,
+pub struct EfiSystemTable {
+    pub header: EfiTableHeader,
     pub firmware_vendor: *const u16,
     pub firmware_revision: u32,
-    pub console_in_handle: Handle,
-    pub con_in: *mut SimpleTextInputProtocol,
-    pub console_out_handle: Handle,
-    pub con_out: *mut SimpleTextOutputProtocol,
-    pub standard_error_handle: Handle,
-    pub std_err: *mut SimpleTextOutputProtocol,
-    pub runtime_services: *mut RuntimeServices,
-    pub boot_services: *mut BootServices,
+    pub console_in_handle: EfiHandle,
+    pub con_in: *mut EfiSimpleTextInputProtocol,
+    pub console_out_handle: EfiHandle,
+    pub con_out: *mut EfiSimpleTextOutputProtocol,
+    pub standard_error_handle: EfiHandle,
+    pub std_err: *mut EfiSimpleTextOutputProtocol,
+    pub runtime_services: *mut EfiRuntimeServices,
+    pub boot_services: *mut EfiBootServices,
     pub number_of_table_entries: usize,
-    pub configuration_table: *mut ConfigurationTable,
+    pub configuration_table: *mut EfiConfigurationTable,
 }
