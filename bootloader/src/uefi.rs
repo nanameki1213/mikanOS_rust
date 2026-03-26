@@ -95,6 +95,7 @@ pub struct EfiGuid {
     pub data3: u16,
     pub data4: [u8; 8],
 }
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Well-known Protocol GUIDs (UEFI Spec 2.10)
 // ──────────────────────────────────────────────────────────────────────────────
@@ -239,7 +240,7 @@ pub struct EfiMemoryDescriptor {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// EfiEvent / Timer types
+// Event / Timer types
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[repr(C)]
@@ -251,6 +252,9 @@ pub enum EfiTimerDelay {
 
 pub type EfiEventNotify = unsafe extern "efiapi" fn(event: EfiEvent, context: *mut c_void);
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Protocol handler types
+// ──────────────────────────────────────────────────────────────────────────────
 
 /// `OpenProtocol` の `attributes` に渡すフラグ (UEFI Spec 2.10 §7.3)
 pub mod open_protocol {
@@ -267,10 +271,6 @@ pub mod open_protocol {
     /// 排他的にオープンする（他のドライバを切断する）
     pub const EXCLUSIVE: u32 = 0x00000020;
 }
-
-// ──────────────────────────────────────────────────────────────────────────────
-// Protocol handler types
-// ──────────────────────────────────────────────────────────────────────────────
 
 #[repr(C)]
 pub enum EfiInterfaceType {
@@ -304,7 +304,7 @@ pub struct EfiDevicePath {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// EfiTime
+// Time
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[repr(C)]
@@ -373,7 +373,8 @@ pub struct EfiInputKey {
 pub struct EfiSimpleTextInputProtocol {
     pub reset: unsafe extern "efiapi" fn(this: *mut Self, extended_verify: bool) -> EfiStatus,
 
-    pub read_key_stroke: unsafe extern "efiapi" fn(this: *mut Self, key: *mut EfiInputKey) -> EfiStatus,
+    pub read_key_stroke:
+        unsafe extern "efiapi" fn(this: *mut Self, key: *mut EfiInputKey) -> EfiStatus,
 
     pub wait_for_key: EfiEvent,
 }
@@ -426,6 +427,140 @@ pub struct EfiSimpleTextOutputProtocol {
 unsafe impl Sync for EfiSimpleTextOutputProtocol {}
 
 // ──────────────────────────────────────────────────────────────────────────────
+// EFI_SIMPLE_FILE_SYSTEM_PROTOCOL
+// ──────────────────────────────────────────────────────────────────────────────
+
+#[repr(C)]
+pub struct EfiFileIoToken {
+    event: EfiEvent,
+    status: EfiStatus,
+    buffer_size: usize,
+    buffer: *mut c_void,
+}
+
+/// EFI_FILE_INFO_ID — EfiFileProtocol::get_info / set_info で使用する GUID
+pub static EFI_FILE_INFO_ID: EfiGuid = EfiGuid {
+    data1: 0x09576e92,
+    data2: 0x6d3f,
+    data3: 0x11d2,
+    data4: [0x8e, 0x39, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b],
+};
+
+/// EFI_FILE_SYSTEM_INFO_ID
+pub static EFI_FILE_SYSTEM_INFO_ID: EfiGuid = EfiGuid {
+    data1: 0x09576e93,
+    data2: 0x6d3f,
+    data3: 0x11d2,
+    data4: [0x8e, 0x39, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b],
+};
+
+#[repr(C)]
+pub struct EfiFileInfo {
+    pub size: u64,
+    pub file_size: u64,
+    pub physical_size: u64,
+    pub create_time: EfiTime,
+    pub last_access_time: EfiTime,
+    pub modification_time: EfiTime,
+    pub attribute: u64,
+}
+
+#[repr(C)]
+pub struct EfiFileProtocol {
+    pub revision: u64,
+    pub open: unsafe extern "efiapi" fn(
+        this: *mut Self,
+        new_handle: *mut *mut Self,
+        file_name: *const u16,
+        open_mode: u64,
+        attributes: u64,
+    ) -> EfiStatus,
+    pub close: unsafe extern "efiapi" fn(this: *mut Self) -> EfiStatus,
+    pub delete: unsafe extern "efiapi" fn(this: *mut Self) -> EfiStatus,
+    pub read: unsafe extern "efiapi" fn(
+        this: *mut Self,
+        buffer_size: usize,
+        buffer: *mut c_void,
+    ) -> EfiStatus,
+    pub write: unsafe extern "efiapi" fn(
+        this: *mut Self,
+        buffer_size: usize,
+        buffer: *mut c_void,
+    ) -> EfiStatus,
+    pub get_position: unsafe extern "efiapi" fn(this: *mut Self, position: *mut u64) -> EfiStatus,
+    pub set_position: unsafe extern "efiapi" fn(this: *mut Self, position: u64) -> EfiStatus,
+    pub get_info: unsafe extern "efiapi" fn(
+        this: *mut Self,
+        information_type: *const EfiGuid,
+        buffer_size: *mut usize,
+        buffer: *mut c_void,
+    ) -> EfiStatus,
+    pub set_info: unsafe extern "efiapi" fn(
+        this: *mut Self,
+        information_type: EfiGuid,
+        buffer_size: usize,
+        buffer: *mut c_void,
+    ) -> EfiStatus,
+    pub flush: unsafe extern "efiapi" fn(this: *mut Self) -> EfiStatus,
+    pub open_ex: unsafe extern "efiapi" fn(
+        this: *mut Self,
+        new_handle: *mut *mut Self,
+        file_name: *const u16,
+        open_mode: u64,
+        attributes: u64,
+        token: *mut EfiFileIoToken,
+    ) -> EfiStatus,
+    pub read_ex:
+        unsafe extern "efiapi" fn(this: *mut Self, token: *mut EfiFileIoToken) -> EfiStatus,
+    pub write_ex:
+        unsafe extern "efiapi" fn(this: *mut Self, token: *mut EfiFileIoToken) -> EfiStatus,
+    pub flush_ex:
+        unsafe extern "efiapi" fn(this: *mut Self, token: *mut EfiFileIoToken) -> EfiStatus,
+}
+
+pub mod open_mode {
+    pub const READ: u64 = 0x0000_0000_0000_0001;
+    pub const WRITE: u64 = 0x0000_0000_0000_0002;
+    pub const CREATE: u64 = 0x8000_0000_0000_0000;
+}
+
+#[repr(C)]
+pub struct EfiSimpleFileSystemProtocol {
+    pub revision: u64,
+    pub open_volume:
+        unsafe extern "efiapi" fn(this: *mut Self, root: *mut *mut EfiFileProtocol) -> EfiStatus,
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// EFI_LOADED_IMAGE_PROTOCOL
+// ──────────────────────────────────────────────────────────────────────────────
+
+pub static EFI_LOADED_IMAGE_PROTOCOL_REVISION: u32 = 0x1000;
+
+#[repr(C)]
+pub struct EfiLoadedImageProtocol {
+    pub revision: u32,
+    pub parent_handle: EfiHandle,
+    pub system_table: *mut EfiSystemTable,
+
+    // ── ソース位置 ────────────────────────────────────────────────────────────
+    pub device_handle: EfiHandle,
+    pub file_path: *mut EfiDevicePath,
+    pub reserved: *mut c_void,
+
+    // ── ロードオプション ──────────────────────────────────────────────────────
+    pub load_options_size: u32,
+    pub load_options: *mut c_void,
+
+    // ── ロード先 ──────────────────────────────────────────────────────────────
+    pub image_base: *mut c_void,
+    pub image_size: u64,
+    pub image_code_type: EfiMemoryType,
+    pub image_data_type: EfiMemoryType,
+    pub unload: unsafe extern "efiapi" fn(image_handle: EfiHandle) -> EfiStatus,
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // EFI_BOOT_SERVICES
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -446,7 +581,8 @@ pub struct EfiBootServices {
         memory: *mut EfiPhysicalAddress,
     ) -> EfiStatus,
 
-    pub free_pages: unsafe extern "efiapi" fn(memory: EfiPhysicalAddress, pages: usize) -> EfiStatus,
+    pub free_pages:
+        unsafe extern "efiapi" fn(memory: EfiPhysicalAddress, pages: usize) -> EfiStatus,
 
     pub get_memory_map: unsafe extern "efiapi" fn(
         memory_map_size: *mut usize,
@@ -464,7 +600,7 @@ pub struct EfiBootServices {
 
     pub free_pool: unsafe extern "efiapi" fn(buffer: *mut c_void) -> EfiStatus,
 
-    // ── EfiEvent & Timer Services ────────────────────────────────────────────────
+    // ── Event & Timer Services ────────────────────────────────────────────────
     pub create_event: unsafe extern "efiapi" fn(
         r#type: u32,
         notify_tpl: EfiTpl,
@@ -473,8 +609,11 @@ pub struct EfiBootServices {
         event: *mut EfiEvent,
     ) -> EfiStatus,
 
-    pub set_timer:
-        unsafe extern "efiapi" fn(event: EfiEvent, r#type: EfiTimerDelay, trigger_time: u64) -> EfiStatus,
+    pub set_timer: unsafe extern "efiapi" fn(
+        event: EfiEvent,
+        r#type: EfiTimerDelay,
+        trigger_time: u64,
+    ) -> EfiStatus,
 
     pub wait_for_event: unsafe extern "efiapi" fn(
         number_of_events: usize,
@@ -648,8 +787,11 @@ pub struct EfiBootServices {
     pub uninstall_multiple_protocol_interfaces: *const c_void,
 
     // ── 32-bit CRC Services ───────────────────────────────────────────────────
-    pub calculate_crc32:
-        unsafe extern "efiapi" fn(data: *mut c_void, data_size: usize, crc32: *mut u32) -> EfiStatus,
+    pub calculate_crc32: unsafe extern "efiapi" fn(
+        data: *mut c_void,
+        data_size: usize,
+        crc32: *mut u32,
+    ) -> EfiStatus,
 
     // ── Miscellaneous Services ────────────────────────────────────────────────
     pub copy_mem:
@@ -662,7 +804,7 @@ pub struct EfiBootServices {
         notify_tpl: EfiTpl,
         notify_fn: Option<EfiEventNotify>,
         context: *const c_void,
-        event_group: *const EfiGuid,
+        event_group: *mut EfiGuid,
         event: *mut EfiEvent,
     ) -> EfiStatus,
 }
@@ -679,9 +821,11 @@ unsafe impl Sync for EfiBootServices {}
 pub struct EfiRuntimeServices {
     pub header: EfiTableHeader,
 
-    // ── EfiTime Services ─────────────────────────────────────────────────────────
-    pub get_time:
-        unsafe extern "efiapi" fn(time: *mut EfiTime, capabilities: *mut EfiTimeCapabilities) -> EfiStatus,
+    // ── Time Services ─────────────────────────────────────────────────────────
+    pub get_time: unsafe extern "efiapi" fn(
+        time: *mut EfiTime,
+        capabilities: *mut EfiTimeCapabilities,
+    ) -> EfiStatus,
 
     pub set_time: unsafe extern "efiapi" fn(time: *const EfiTime) -> EfiStatus,
 
@@ -716,7 +860,7 @@ pub struct EfiRuntimeServices {
     pub get_next_variable_name: unsafe extern "efiapi" fn(
         variable_name_size: *mut usize,
         variable_name: *mut u16,
-        vendor_guid: *mut EfiGuid,
+        vendor_guid: *const EfiGuid,
     ) -> EfiStatus,
 
     pub set_variable: unsafe extern "efiapi" fn(
