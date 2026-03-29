@@ -9,7 +9,7 @@ use core::ffi::c_void;
 /// EFI_STATUS — UEFI ステータスコード一覧 (UEFI Spec 2.10 Appendix D)
 ///
 /// エラーコードは最上位ビット (bit 63) が立っている。
-#[repr(usize)]
+#[repr(u64)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EfiStatus {
     // ── 成功 ──────────────────────────────────────────────────────────────────

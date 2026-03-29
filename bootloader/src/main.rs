@@ -45,6 +45,7 @@ pub struct BootServices {
     bs: &'static EfiBootServices,
 }
 
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 impl BootServices {
     pub const fn new(bs: &'static EfiBootServices) -> Self {
         Self { bs }
@@ -236,7 +237,7 @@ fn uefi_putc(b: u8) {
 }
 
 #[unsafe(no_mangle)]
-pub extern "efiapi" fn efi_main(
+pub unsafe extern "efiapi" fn efi_main(
     image_handle: EfiHandle,
     system_table: *mut EfiSystemTable,
 ) -> EfiStatus {
