@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use core::ffi::c_void;
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -479,12 +481,12 @@ pub struct EfiFileProtocol {
     pub delete: unsafe extern "efiapi" fn(this: *mut Self) -> EfiStatus,
     pub read: unsafe extern "efiapi" fn(
         this: *mut Self,
-        buffer_size: usize,
+        buffer_size: *mut usize,
         buffer: *mut c_void,
     ) -> EfiStatus,
     pub write: unsafe extern "efiapi" fn(
         this: *mut Self,
-        buffer_size: usize,
+        buffer_size: *mut usize,
         buffer: *mut c_void,
     ) -> EfiStatus,
     pub get_position: unsafe extern "efiapi" fn(this: *mut Self, position: *mut u64) -> EfiStatus,
