@@ -28,40 +28,23 @@ fn try_main() -> Result<(), DynError> {
 }
 
 fn build() -> Result<(), DynError> {
-    let cargo = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
+    let bootloader_path = project_root().join("bootloader");
+    let efi_dst = project_root().join("esp/EFI/BOOT/BOOTX64.EFI");
+    let efi_src = project_root().join("target/x86_64-unknown-uefi/debug/bootloader.efi");
 
-    // ── bootloader ────────────────────────────────────────────────────────────
-    eprintln!("Building bootloader...");
+    let cargo = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     let status = Command::new(&cargo)
-        .current_dir(project_root().join("bootloader"))
+        .current_dir(&bootloader_path)
         .arg("build")
         .status()?;
+
     if !status.success() {
-        return Err("bootloader build failed.".into());
+        return Err("cargo build failed.".into());
     }
-    let efi_src = project_root().join("target/x86_64-unknown-uefi/debug/bootloader.efi");
-    let efi_dst = project_root().join("esp/EFI/BOOT/BOOTX64.EFI");
+
     fs::create_dir_all(efi_dst.parent().unwrap())?;
     fs::copy(&efi_src, &efi_dst)?;
     eprintln!("Copied {} -> {}", efi_src.display(), efi_dst.display());
-
-    // ── kernel ────────────────────────────────────────────────────────────────
-    eprintln!("Building kernel...");
-    let status = Command::new(&cargo)
-        .current_dir(project_root().join("kernel"))
-        .arg("build")
-        .status()?;
-    if !status.success() {
-        return Err("kernel build failed.".into());
-    }
-    let kernel_src = project_root().join("target/x86_64-unknown-none/debug/kernel");
-    let kernel_dst = project_root().join("esp/kernel.elf");
-    fs::copy(&kernel_src, &kernel_dst)?;
-    eprintln!(
-        "Copied {} -> {}",
-        kernel_src.display(),
-        kernel_dst.display()
-    );
 
     Ok(())
 }
@@ -119,7 +102,7 @@ fn print_help() {
         "Usage: cargo xtask <command>
 
 Commands:
-  build    ブートローダーとカーネルをビルドして esp/ に配置する
+  build    ブートローダーをビルドして esp/EFI/BOOT/BOOTX64.EFI に配置する
   run      OVMF_VARS.fd をコピーし QEMU でブートローダーを起動する
   help     このヘルプを表示する"
     );

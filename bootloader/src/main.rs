@@ -324,6 +324,20 @@ pub unsafe extern "efiapi" fn efi_main(
         kernel_base_addr, kernel_file_size
     );
 
+    let gop = match open_gop(&bs, image_handle) {
+        Ok(gop) => gop,
+        Err(err) => panic!("failed to get gop: {:?}", err),
+    };
+    unsafe {
+        let mode = (*gop).mode;
+        let frame_buffer_base = (*mode).frame_buffer_base as *mut u8;
+        let frame_buffer_size = (*mode).frame_buffer_size;
+
+        let frame_buffer =
+            &mut *core::ptr::slice_from_raw_parts_mut(frame_buffer_base, frame_buffer_size);
+        frame_buffer.fill(255);
+    }
+
     let buffer = [0u8; 4096 * 4];
     memmap = match bs.get_memory_map_with_buf(&buffer) {
         Ok(map) => map,
@@ -376,6 +390,20 @@ fn halt_loop() -> ! {
     loop {
         unsafe { asm!("hlt") };
     }
+}
+
+fn open_gop(
+    bs: &BootServices,
+    image_handle: EfiHandle,
+) -> Result<*mut EfiGraphicsOutputProtocol, UefiError> {
+    let gop = bs.open_protocol(
+        image_handle,
+        &raw const EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID,
+        image_handle,
+        core::ptr::null_mut(),
+        open_protocol::BY_HANDLE_PROTOCOL,
+    )? as *mut EfiGraphicsOutputProtocol;
+    Ok(gop)
 }
 
 #[panic_handler]

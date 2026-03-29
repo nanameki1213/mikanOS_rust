@@ -563,6 +563,89 @@ pub struct EfiLoadedImageProtocol {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// EFI_GRAPHICS_OUTPUT_PROTOCOL
+// ──────────────────────────────────────────────────────────────────────────────
+
+#[repr(C)]
+pub enum EfiGraphicsPixelFormat {
+    PixelRedGreenBlueReserved8BitPerColor,
+    PixelBlueGreenRedReserved8BitPerColor,
+    PixelBitMask,
+    PixelBltOnly,
+    PixelFormatMax,
+}
+
+#[repr(C)]
+pub struct EfiPixelBitmask {
+    pub red_mask: u32,
+    pub green_mask: u32,
+    pub blue_mask: u32,
+    pub reserved_mask: u32,
+}
+
+#[repr(C)]
+pub struct EfiGraphicsOutputModeInformation {
+    pub version: u32,
+    pub horizontal_resolution: u32,
+    pub vertical_resolution: u32,
+    pub pixel_format: EfiGraphicsPixelFormat,
+    pub pixel_information: EfiPixelBitmask,
+    pub pixels_per_scan_line: u32,
+}
+
+#[repr(C)]
+pub struct EfiGraphicsOutputProtocolMode {
+    pub max_mode: u32,
+    pub mode: u32,
+    pub info: *mut EfiGraphicsOutputModeInformation,
+    pub size_of_info: usize,
+    pub frame_buffer_base: EfiPhysicalAddress,
+    pub frame_buffer_size: usize,
+}
+
+/// EFI_GRAPHICS_OUTPUT_BLT_PIXEL
+#[repr(C)]
+pub struct EfiBltPixel {
+    pub blue: u8,
+    pub green: u8,
+    pub red: u8,
+    pub reserved: u8,
+}
+
+#[repr(C)]
+pub enum EfiBltOperation {
+    EfiBltVideoFill,
+    EfiBltVideoToBltBuffer,
+    EfiBltBufferToVideo,
+    EfiBltVideoToVideo,
+    EfiGraphicsOutputBltOperationMax,
+}
+
+#[repr(C)]
+pub struct EfiGraphicsOutputProtocol {
+    pub query_mode: unsafe extern "efiapi" fn(
+        this: *mut Self,
+        mode_number: u32,
+        size_of_info: *mut usize,
+        info: *mut *mut EfiGraphicsOutputModeInformation,
+    ) -> EfiStatus,
+    pub set_mode: unsafe extern "efiapi" fn(this: *mut Self, mode_number: u32) -> EfiStatus,
+    pub blt: unsafe extern "efiapi" fn(
+        this: *mut Self,
+        blt_buffer: *mut EfiBltPixel,
+        blt_operation: EfiBltOperation,
+        source_x: usize,
+        source_y: usize,
+        destination_x: usize,
+        destination_y: usize,
+        width: usize,
+        height: usize,
+        delta: usize,
+    ) -> EfiStatus,
+    pub mode: *mut EfiGraphicsOutputProtocolMode,
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // EFI_BOOT_SERVICES
 // ──────────────────────────────────────────────────────────────────────────────
 
