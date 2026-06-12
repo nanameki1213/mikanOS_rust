@@ -6,8 +6,8 @@ pub mod font;
 pub mod graphics;
 
 use common::frame_buffer::*;
-use console_core::ConsoleCore;
 use console::*;
+use console_core::ConsoleCore;
 use core::arch::asm;
 use core::panic::PanicInfo;
 use graphics::*;
