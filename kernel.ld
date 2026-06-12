@@ -21,6 +21,8 @@ SECTIONS
   .data : ALIGN(0x1000) {
     *(.data)
     *(.data.*)
+    *(.got)
+    *(.got.plt)
   }
 
   .bss : ALIGN(0x1000) {

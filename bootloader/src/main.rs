@@ -4,6 +4,7 @@
 mod elf;
 mod uefi;
 
+use common::frame_buffer::*;
 use console::print;
 use core::arch::asm;
 use core::ffi::c_void;
@@ -181,6 +182,33 @@ impl BootServices {
         Ok(buf as *mut u8)
     }
 
+    pub fn free_pool(&self, buffer: *mut c_void) -> Result<(), UefiError> {
+        let status = unsafe { (self.bs.free_pool)(buffer) };
+        efi_status_to_result(status)?;
+        Ok(())
+    }
+
+    pub fn locate_handle_buffer(
+        &self,
+        search_type: EfiLocateSearchType,
+        protocol: *const EfiGuid,
+        search_key: *mut c_void,
+        no_handles: *mut usize,
+    ) -> Result<*mut EfiHandle, UefiError> {
+        let mut buffer: *mut EfiHandle = core::ptr::null_mut();
+        let status = unsafe {
+            (self.bs.locate_handle_buffer)(
+                search_type,
+                protocol,
+                search_key,
+                no_handles,
+                &raw mut buffer,
+            )
+        };
+        efi_status_to_result(status)?;
+        Ok(buffer)
+    }
+
     pub fn open_protocol(
         &self,
         image_handle: EfiHandle,
@@ -328,15 +356,29 @@ pub unsafe extern "efiapi" fn efi_main(
         Ok(gop) => gop,
         Err(err) => panic!("failed to get gop: {:?}", err),
     };
-    unsafe {
+    let config = unsafe {
         let mode = (*gop).mode;
-        let frame_buffer_base = (*mode).frame_buffer_base as *mut u8;
-        let frame_buffer_size = (*mode).frame_buffer_size;
+        let info = (*mode).info;
+        let mut config = FrameBufferConfig {
+            frame_buffer: (*mode).frame_buffer_base as *mut u8,
+            pixels_per_scan_line: (*info).pixels_per_scan_line,
+            horizontal_resolution: (*info).horizontal_resolution,
+            vertical_resolution: (*info).vertical_resolution,
+            pixel_format: PixelFormat::PixelRGBResv8BitPerColor,
+        };
 
-        let frame_buffer =
-            &mut *core::ptr::slice_from_raw_parts_mut(frame_buffer_base, frame_buffer_size);
-        frame_buffer.fill(255);
-    }
+        config.pixel_format = match (*info).pixel_format {
+            EfiGraphicsPixelFormat::PixelRedGreenBlueReserved8BitPerColor => {
+                PixelFormat::PixelRGBResv8BitPerColor
+            }
+            EfiGraphicsPixelFormat::PixelBlueGreenRedReserved8BitPerColor => {
+                PixelFormat::PixelBGRResv8BitPerColor
+            }
+            _ => panic!("Unimplemented pixel format: {:?}", (*info).pixel_format),
+        };
+
+        config
+    };
 
     let buffer = [0u8; 4096 * 4];
     memmap = match bs.get_memory_map_with_buf(&buffer) {
@@ -349,10 +391,10 @@ pub unsafe extern "efiapi" fn efi_main(
     };
 
     let entry_address = load_elf(kernel_base_addr as *const u64);
-    let entry_point: unsafe extern "C" fn() =
+    let entry_point: unsafe extern "C" fn(frame_buffer_config: &FrameBufferConfig) =
         unsafe { core::mem::transmute(entry_address as usize) };
     unsafe {
-        entry_point();
+        entry_point(&config);
     }
 
     EfiStatus::Success
@@ -396,13 +438,25 @@ fn open_gop(
     bs: &BootServices,
     image_handle: EfiHandle,
 ) -> Result<*mut EfiGraphicsOutputProtocol, UefiError> {
+    let mut num_gop_handles = 0;
+    let gop_handlers_ptr = bs.locate_handle_buffer(
+        EfiLocateSearchType::ByProtocol,
+        &raw const EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID,
+        core::ptr::null_mut(),
+        &raw mut num_gop_handles,
+    )?;
+    let gop_handlers =
+        unsafe { &*core::ptr::slice_from_raw_parts(gop_handlers_ptr, num_gop_handles) };
+
     let gop = bs.open_protocol(
-        image_handle,
+        gop_handlers[0],
         &raw const EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID,
         image_handle,
         core::ptr::null_mut(),
         open_protocol::BY_HANDLE_PROTOCOL,
     )? as *mut EfiGraphicsOutputProtocol;
+
+    let _ = bs.free_pool(gop_handlers_ptr as *mut c_void);
     Ok(gop)
 }
 

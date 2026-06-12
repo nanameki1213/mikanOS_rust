@@ -6,9 +6,14 @@ version = 4
 name = "bootloader"
 version = "0.1.0"
 dependencies = [
+ "common",
  "console",
  "spin",
 ]
+
+[[package]]
+name = "common"
+version = "0.1.0"
 
 [[package]]
 name = "console"
@@ -20,6 +25,11 @@ dependencies = [
 [[package]]
 name = "kernel"
 version = "0.1.0"
+dependencies = [
+ "common",
+ "console",
+ "spin",
+]
 
 [[package]]
 name = "lock_api"

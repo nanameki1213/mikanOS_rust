@@ -567,6 +567,7 @@ pub struct EfiLoadedImageProtocol {
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[repr(C)]
+#[derive(Debug)]
 pub enum EfiGraphicsPixelFormat {
     PixelRedGreenBlueReserved8BitPerColor,
     PixelBlueGreenRedReserved8BitPerColor,

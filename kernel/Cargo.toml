@@ -4,3 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+common = { version = "0.1.0", path = "../common" }
+console = { version = "0.1.0", path = "../support/console" }
+spin = "0.10.0"
